@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>臺灣 3D 立體震源與 AI 語音時空小幫手</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Three.js r128 & OrbitControls (Rock solid UMD Global) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Load Data -->
+  <script src="earthquake_data/earthquake_3d_data.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #020617;
+      font-family: 'Noto Sans TC', sans-serif;
+      color: #f8fafc;
+      user-select: none;
+    }
+
+    #webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Top Header HUD */
+    .top-hud {
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-title-box {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 16px 22px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+      pointer-events: auto;
+    }
+    .hud-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(2, 132, 199, 0.25);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .hud-title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hud-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* Top Right Preset Camera Buttons */
+    .view-presets {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+    }
+    .preset-btn {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #e2e8f0;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      border-color: #38bdf8;
+      background: rgba(2, 132, 199, 0.3);
+      color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+    }
+    .btn-settings {
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+    .btn-settings:hover {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    /* Left Floating Control Panel */
+    .control-panel {
+      position: absolute;
+      top: 140px;
+      left: 24px;
+      width: 320px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      max-height: calc(100vh - 280px);
+      overflow-y: auto;
+    }
+    .panel-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .control-group {
+      margin-bottom: 14px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .control-val {
+      font-family: 'Fira Code', monospace;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    input[type=range] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+      outline: none;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    select, input[type=text] {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    select:focus, input[type=text]:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    /* Stats Counter Card */
+    .stats-card {
+      background: rgba(30, 41, 59, 0.7);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      border: 1px solid rgba(71, 85, 105, 0.5);
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+    .stat-row strong {
+      color: #f8fafc;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* AI VOICE ASSISTANT BOTTOM FLOATING BAR */
+    .ai-assistant-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 820px;
+      max-width: 90vw;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.2);
+      border-radius: 16px;
+      padding: 14px 20px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ai-input-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-mic {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border: 2px solid #fca5a5;
+      color: white;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-mic.listening {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #6ee7b7;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+      animation: pulseMic 1.2s infinite;
+    }
+    @keyframes pulseMic {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .ai-text-input {
+      flex: 1;
+      height: 42px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0 16px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+    .ai-text-input:focus {
+      border-color: #38bdf8;
+    }
+    .btn-ask {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 0 20px;
+      height: 42px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-ask:hover {
+      background: #0369a1;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.5);
+    }
+
+    /* Prompt Recommendation Chips */
+    .prompt-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .prompt-chip {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .prompt-chip:hover {
+      background: rgba(2, 132, 199, 0.25);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    /* CINEMATIC AUDIO-VISUAL SYNC CARD (講到哪裡，顯示到哪裡) */
+    .spatial-story-banner {
+      display: none;
+      background: linear-gradient(90deg, rgba(2, 132, 199, 0.2), rgba(15, 23, 42, 0.6));
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-top: 4px;
+    }
+    .story-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .location-tag {
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .audio-wave-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #10b981;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .audio-bar {
+      width: 3px;
+      height: 12px;
+      background: #10b981;
+      border-radius: 2px;
+      animation: soundWave 0.8s infinite alternate ease-in-out;
+    }
+    .audio-bar:nth-child(2) { animation-delay: 0.2s; height: 16px; }
+    .audio-bar:nth-child(3) { animation-delay: 0.4s; height: 8px; }
+    @keyframes soundWave {
+      0% { height: 4px; }
+      100% { height: 16px; }
+    }
+    .story-subtitle {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.4;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    /* Settings Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      width: 580px;
+      max-width: 90vw;
+      padding: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .modal-field {
+      margin-bottom: 16px;
+    }
+    .modal-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+    .modal-field input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+    }
+    .modal-btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 8px 22px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Depth Legend Bar */
+    .legend-box {
+      position: absolute;
+      top: 140px;
+      right: 24px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 10px;
+      padding: 14px 18px;
+      z-index: 10;
+      width: 260px;
+    }
+    .legend-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .gradient-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #06b6d4 75%, #6366f1 100%);
+      margin-bottom: 6px;
+    }
+    .legend-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #94a3b8;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Floating Tooltip */
+    #tooltip {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: white;
+      transform: translate(-50%, -120%);
+      white-space: nowrap;
+    }
+    .tooltip-header {
+      font-weight: 800;
+      font-size: 15px;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #94a3b8;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+    .tooltip-row span.val {
+      color: #f1f5f9;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Left HUD -->
+  <div class="top-hud">
+    <div class="hud-title-box">
+      <div class="hud-badge">⚡ 3D Geospatial + AI Voice Agent</div>
+      <div class="hud-title">臺灣地震 3D 立體震源與 AI 語音時空小幫手</div>
+      <div class="hud-subtitle">
+        全臺 73,761 筆觀測紀錄 · 音畫同步空間運鏡 · 講到哪、圖就飛到哪
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Right Camera Presets & Settings -->
+  <div class="view-presets">
+    <button class="preset-btn active" id="btn-p-overview" onclick="setPreset('overview', this)">🌐 全臺俯瞰</button>
+    <button class="preset-btn" id="btn-p-hualien" onclick="setPreset('hualien', this)">🌊 花蓮隱沒帶</button>
+    <button class="preset-btn" id="btn-p-chichi" onclick="setPreset('chichi', this)">⚡ 921 車籠埔斷層</button>
+    <button class="preset-btn" id="btn-p-chihshang" onclick="setPreset('chihshang', this)">🏔️ 臺東池上縱谷</button>
+    <button class="preset-btn btn-settings" onclick="openSettingsModal()">⚙️ 小幫手設定 (GAS/TTS)</button>
+  </div>
+
+  <!-- Left Interactive Control Panel -->
+  <div class="control-panel">
+    <div class="panel-section-title">
+      <span>震源篩選過濾器</span>
+      <span style="font-size: 11px; color: #10b981;">● 實時渲染</span>
+    </div>
+
+    <!-- County / City Selector -->
+    <div class="control-group">
+      <div class="control-label" style="color: #f59e0b; font-weight: 700;">
+        <span>🎯 選擇縣市特寫 (County/City)</span>
+      </div>
+      <select id="sel-county" onchange="onCountyChange()" style="border-color: #f59e0b; background: #0f172a;">
+        <option value="all">全臺灣 (不限縣市)</option>
+        <option value="花蓮縣">📍 花蓮縣 (地震最活躍 · 0403震央)</option>
+        <option value="宜蘭縣">📍 宜蘭縣 (東北海域隱沒帶)</option>
+        <option value="台東縣">📍 臺東縣 (池上 · 成功縱谷斷層)</option>
+        <option value="南投縣">📍 南投縣 (921 集集大地震)</option>
+        <option value="台中市">📍 臺中市 (車籠埔斷層北段)</option>
+        <option value="嘉義縣">📍 嘉義縣 (梅山斷層帶)</option>
+        <option value="嘉義市">📍 嘉義市</option>
+        <option value="台南市">📍 臺南市</option>
+        <option value="高雄市">📍 高雄市 (美濃地震帶)</option>
+        <option value="屏東縣">📍 屏東縣 (恆春外海板塊交界)</option>
+        <option value="台北市">📍 臺北市 (山腳斷層 · 大屯火山)</option>
+        <option value="新北市">📍 新北市</option>
+        <option value="桃園縣">📍 桃園市</option>
+        <option value="新竹市">📍 新竹市</option>
+        <option value="新竹縣">📍 新竹縣</option>
+        <option value="苗栗縣">📍 苗栗縣</option>
+        <option value="彰化縣">📍 彰化縣 (彰化斷層)</option>
+        <option value="雲林縣">📍 雲林縣 (古坑有感地震)</option>
+        <option value="基隆市">📍 基隆市</option>
+        <option value="澎湖縣">📍 澎湖縣</option>
+      </select>
+    </div>
+
+    <!-- Year Filter -->
+    <div class="control-group">
+      <div class="control-label">資料年份 (Year)</div>
+      <select id="sel-year" onchange="applyFilters()">
+        <option value="all">所有歷史年份 (1990 ~ 2026)</option>
+        <option value="2024">2024 年 (0403 花蓮地震序列)</option>
+        <option value="2022">2022 年 (0918 池上地震序列)</option>
+        <option value="1999">1999 年 (921 集集大地震)</option>
+      </select>
+    </div>
+
+    <!-- Min Magnitude Slider -->
+    <div class="control-group">
+      <div class="control-label">
+        <span>最低芮氏規模</span>
+        <span class="control-val" id="val-mag">M &ge; 4.0</span>
+      </div>
+      <input type="range" id="range-mag" min="3.0" max="6.5" step="0.1" value="4.0" oninput="updateMag(this.value)">
+    </div>
+
+    <!-- Max Depth Slider -->
+    <div class="control-group">
+      <div class="control-label">
+        <span>最大震源深度</span>
+        <span class="control-val" id="val-depth">150 km</span>
+      </div>
+      <input type="range" id="range-depth" min="15" max="250" step="5" value="150" oninput="updateDepth(this.value)">
+    </div>
+
+    <!-- Stats Card -->
+    <div class="stats-card">
+      <div class="stat-row">
+        <span>當前呈現震源數:</span>
+        <strong id="stat-displayed">0</strong>
+      </div>
+      <div class="stat-row">
+        <span>該視角最大規模:</span>
+        <strong id="stat-max-mag" style="color: #ef4444;">-</strong>
+      </div>
+      <div class="stat-row">
+        <span>平均震源深度:</span>
+        <strong id="stat-avg-depth">-</strong>
+      </div>
+      <div class="stat-row" id="row-county-target" style="display:none; color: #f59e0b; border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 4px; margin-top: 4px;">
+        <span>鎖定縣市:</span>
+        <strong id="stat-county-name" style="color: #f59e0b;">-</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Depth Legend Bar -->
+  <div class="legend-box">
+    <div class="legend-title">
+      <span>震源深度色譜</span>
+      <span style="color: #94a3b8; font-size: 11px;">向下延伸</span>
+    </div>
+    <div class="gradient-bar"></div>
+    <div class="legend-ticks">
+      <span>0km (極淺)</span>
+      <span>35km</span>
+      <span>70km</span>
+      <span>150km+</span>
+    </div>
+  </div>
+
+  <!-- AI VOICE ASSISTANT BOTTOM FLOATING BAR -->
+  <div class="ai-assistant-bar">
+    <div class="ai-input-row">
+      <button class="btn-mic" id="btn-voice-mic" onclick="toggleVoiceInput()" title="點擊開始/停止麥克風語音提問">
+        🎤
+      </button>
+      <input type="text" class="ai-text-input" id="input-query" placeholder="用語音或文字提問：例如「921地震是什麼情況？」、「2024花蓮地震有多大？」..." onkeydown="if(event.key==='Enter') submitQuery()">
+      <button class="btn-ask" onclick="submitQuery()">
+        <span>🚀 提問小幫手</span>
+      </button>
+    </div>
+
+    <!-- Prompt Recommendation Chips -->
+    <div class="prompt-chips">
+      <span class="prompt-chip" onclick="quickAsk('921地震是一個什麼樣的情況？')">⚡ 921地震是一個什麼樣的情況？</span>
+      <span class="prompt-chip" onclick="quickAsk('2024花蓮大地震與板塊隱沒帶關係？')">🌊 2024花蓮大地震與板塊隱沒帶？</span>
+      <span class="prompt-chip" onclick="quickAsk('臺東池上地震發生了什麼？')">🏔️ 臺東池上地震發生了什麼？</span>
+      <span class="prompt-chip" onclick="quickAsk('臺灣歷史上最大的地震是哪一次？')">📊 臺灣歷史上最大地震是哪一次？</span>
+    </div>
+
+    <!-- Cinematic Audio-Visual Sync Banner -->
+    <div class="spatial-story-banner" id="story-banner">
+      <div class="story-header-row">
+        <span class="location-tag" id="story-location-badge">📍 南投集集</span>
+        <div class="audio-wave-indicator" id="story-audio-status">
+          <div class="audio-bar"></div>
+          <div class="audio-bar"></div>
+          <div class="audio-bar"></div>
+          <span style="margin-left: 4px;">AI 正在用語音解說與 3D 空間運鏡... (點此暫停)</span>
+        </div>
+      </div>
+      <div class="story-subtitle" id="story-subtitle-text">
+        1999 年 9 月 21 日凌晨 1 點 47 分，南投集集發生了芮氏規模 7.3 的強烈大地震。
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (GAS / OpenRouter API) -->
+  <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this) closeSettingsModal()">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>⚙️</span> 地震小幫手後端與語音設定
+      </div>
+      <div class="modal-desc">
+        本系統支援兩種模式：① 預設「內建本地離線大腦與語音」，無需設定即刻可問；② 或串接您的「Google Apps Script (GAS) 部署網址」與「OpenRouter 廣播級 TTS」。
+      </div>
+
+      <div class="modal-field">
+        <label>Google Apps Script (GAS) Web App URL (選填):</label>
+        <input type="text" id="cfg-gas-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+          💡 貼上您在 Google Apps Script 發布為 Web 應用程式的網址。留空則自動使用內建離線知識庫。
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label>OpenRouter API Key (選填，用於廣播級 TTS):</label>
+        <input type="text" id="cfg-opr-key" placeholder="sk-or-v1-...">
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+          💡 留空則自動使用瀏覽器內建繁體中文語音合成 (Web Speech API)，完全免費、零等待！
+        </div>
+      </div>
+
+      <div class="modal-btn-row">
+        <button class="btn-secondary" onclick="closeSettingsModal()">取消</button>
+        <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Tooltip -->
+  <div id="tooltip"></div>
+
+  <!-- Canvas Container -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <script>
+    // 1. Setup Three.js Scene, Camera, Renderer
+    const canvas = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020617);
+    scene.fog = new THREE.FogExp2(0x020617, 0.0018);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 800;
+    controls.minDistance = 20;
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+    dirLight.position.set(100, 200, 150);
+    scene.add(dirLight);
+
+    // 2. Coordinate Transformation Parameters
+    const CENTER_LON = 121.0;
+    const CENTER_LAT = 23.7;
+    const SCALE_X = 100.0;
+    const SCALE_Y = 111.0;
+    const SCALE_Z = 1.0;
+
+    function geoTo3D(lon, lat, depthKm) {
+      const x = (lon - CENTER_LON) * SCALE_X;
+      const y = -depthKm * SCALE_Z;
+      const z = -(lat - CENTER_LAT) * SCALE_Y;
+      return new THREE.Vector3(x, y, z);
+    }
+
+    // 3. County Geometries & Centers
+    const COUNTY_DATA = {
+      "花蓮縣": { center_lon: 121.4, center_lat: 23.706, min_lon: 120.837, max_lon: 122.024, min_lat: 22.998, max_lat: 24.47 },
+      "宜蘭縣": { center_lon: 121.778, center_lat: 24.713, min_lon: 121.167, max_lon: 122.216, min_lat: 24.209, max_lat: 25.088 },
+      "台東縣": { center_lon: 121.295, center_lat: 22.763, min_lon: 120.589, max_lon: 121.865, min_lat: 21.844, max_lat: 23.544 },
+      "南投縣": { center_lon: 120.906, center_lat: 23.868, min_lon: 120.466, max_lon: 121.599, min_lat: 23.335, max_lat: 24.346 },
+      "台中市": { center_lon: 120.899, center_lat: 24.261, min_lon: 120.311, max_lon: 121.7, min_lat: 23.898, max_lat: 24.542 },
+      "嘉義縣": { center_lon: 120.488, center_lat: 23.432, min_lon: 119.967, max_lon: 121.208, min_lat: 23.115, max_lat: 23.736 },
+      "嘉義市": { center_lon: 120.452, center_lat: 23.483, min_lon: 120.239, max_lon: 120.759, min_lat: 23.34, max_lat: 23.618 },
+      "台南市": { center_lon: 120.369, center_lat: 23.167, min_lon: 119.882, max_lon: 120.906, min_lat: 22.787, max_lat: 23.514 },
+      "高雄市": { center_lon: 120.566, center_lat: 22.955, min_lon: 120.025, max_lon: 121.299, min_lat: 22.376, max_lat: 23.572 },
+      "屏東縣": { center_lon: 120.745, center_lat: 22.276, min_lon: 120.203, max_lon: 121.154, min_lat: 21.797, max_lat: 22.985 },
+      "台北市": { center_lon: 121.579, center_lat: 25.076, min_lon: 121.307, max_lon: 121.916, min_lat: 24.861, max_lat: 25.31 },
+      "新北市": { center_lon: 121.657, center_lat: 25.061, min_lon: 121.133, max_lon: 122.257, min_lat: 24.573, max_lat: 25.4 },
+      "桃園縣": { center_lon: 121.262, center_lat: 24.915, min_lon: 120.836, max_lon: 121.729, min_lat: 24.486, max_lat: 25.222 },
+      "新竹市": { center_lon: 120.948, center_lat: 24.778, min_lon: 120.728, max_lon: 121.283, min_lat: 24.613, max_lat: 24.954 },
+      "新竹縣": { center_lon: 121.125, center_lat: 24.712, min_lon: 120.782, max_lon: 121.662, min_lat: 24.328, max_lat: 25.046 },
+      "苗栗縣": { center_lon: 120.88, center_lat: 24.522, min_lon: 120.471, max_lon: 121.513, min_lat: 24.189, max_lat: 24.841 },
+      "彰化縣": { center_lon: 120.516, center_lat: 23.951, min_lon: 120.093, max_lon: 120.934, min_lat: 23.686, max_lat: 24.296 },
+      "雲林縣": { center_lon: 120.289, center_lat: 23.631, min_lon: 119.848, max_lon: 120.986, min_lat: 23.336, max_lat: 23.947 },
+      "基隆市": { center_lon: 121.742, center_lat: 25.135, min_lon: 121.477, max_lon: 122.058, min_lat: 24.953, max_lat: 25.296 },
+      "澎湖縣": { center_lon: 119.597, center_lat: 23.586, min_lon: 119.35, max_lon: 119.978, min_lat: 23.134, max_lat: 23.898 }
+    };
+
+    // 4. Build Ground Grid & Depth Cage
+    const groundGroup = new THREE.Group();
+    scene.add(groundGroup);
+
+    const gridHelper = new THREE.GridHelper(300, 30, 0x0284c7, 0x1e293b);
+    gridHelper.position.y = 0;
+    groundGroup.add(gridHelper);
+
+    [-35, -70, -150].forEach(d => {
+      const subGrid = new THREE.GridHelper(300, 15, 0x334155, 0x0f172a);
+      subGrid.position.y = -d * SCALE_Z;
+      groundGroup.add(subGrid);
+    });
+
+    // 5. Draw Taiwan County Boundaries
+    const countyLinesMap = {};
+    if (window.TW_BOUNDARY && Array.isArray(window.TW_BOUNDARY)) {
+      window.TW_BOUNDARY.forEach(item => {
+        const points = [];
+        item.coords.forEach(pt => {
+          const v = geoTo3D(pt[0], pt[1], 0);
+          points.push(v);
+        });
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const lineMat = new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          linewidth: 1.5,
+          transparent: true,
+          opacity: 0.8
+        });
+        const line = new THREE.Line(lineGeo, lineMat);
+        groundGroup.add(line);
+
+        if (!countyLinesMap[item.name]) countyLinesMap[item.name] = [];
+        countyLinesMap[item.name].push(line);
+      });
+    }
+
+    // 6. Build 3D Earthquake Hypocenters Point Cloud & Mesh
+    let earthquakes = window.EQ_3D_DATA || [];
+    let eqMeshes = [];
+    let eqPointsGroup = new THREE.Group();
+    scene.add(eqPointsGroup);
+
+    function getDepthColor(depth) {
+      if (depth < 15) return new THREE.Color(0xef4444);
+      if (depth < 35) return new THREE.Color(0xf97316);
+      if (depth < 70) return new THREE.Color(0xeab308);
+      if (depth < 120) return new THREE.Color(0x06b6d4);
+      return new THREE.Color(0x818cf8);
+    }
+
+    const baseSphereGeo = new THREE.SphereGeometry(1, 16, 16);
+
+    function buildEarthquakes(overrideFilter) {
+      while (eqPointsGroup.children.length > 0) {
+        const obj = eqPointsGroup.children[0];
+        eqPointsGroup.remove(obj);
+      }
+      eqMeshes = [];
+
+      const minMag = overrideFilter && overrideFilter.minMag !== undefined ? overrideFilter.minMag : parseFloat(document.getElementById('range-mag').value);
+      const maxDepth = overrideFilter && overrideFilter.maxDepth !== undefined ? overrideFilter.maxDepth : parseFloat(document.getElementById('range-depth').value);
+      const selectedCounty = overrideFilter && overrideFilter.county !== undefined ? overrideFilter.county : document.getElementById('sel-county').value;
+      const selectedYear = overrideFilter && overrideFilter.year !== undefined ? overrideFilter.year : document.getElementById('sel-year').value;
+
+      let count = 0;
+      let maxM = 0;
+      let depthSum = 0;
+
+      earthquakes.forEach(eq => {
+        if (eq.m < minMag || eq.z > maxDepth) return;
+        if (selectedYear !== 'all' && eq.yr !== parseInt(selectedYear)) return;
+
+        if (selectedCounty !== 'all' && COUNTY_DATA[selectedCounty]) {
+          const c = COUNTY_DATA[selectedCounty];
+          if (eq.x < c.min_lon || eq.x > c.max_lon || eq.y < c.min_lat || eq.y > c.max_lat) {
+            return;
+          }
+        }
+
+        count++;
+        if (eq.m > maxM) maxM = eq.m;
+        depthSum += eq.z;
+
+        const pos = geoTo3D(eq.x, eq.y, eq.z);
+        const radius = Math.max(0.6, Math.pow(eq.m - 2.8, 1.6) * 0.7);
+
+        const color = getDepthColor(eq.z);
+        const mat = new THREE.MeshStandardMaterial({
+          color: color,
+          emissive: color,
+          emissiveIntensity: eq.m >= 6.0 ? 0.9 : 0.4,
+          roughness: 0.3,
+          metalness: 0.2
+        });
+
+        const mesh = new THREE.Mesh(baseSphereGeo, mat);
+        mesh.position.copy(pos);
+        mesh.scale.set(radius, radius, radius);
+        mesh.userData = eq;
+        eqPointsGroup.add(mesh);
+        eqMeshes.push(mesh);
+
+        if (eq.m >= 5.8) {
+          const linePts = [ new THREE.Vector3(pos.x, 0, pos.z), pos ];
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(linePts);
+          const lineMat = new THREE.LineDashedMaterial({ color: color, dashSize: 2, gapSize: 1, transparent: true, opacity: 0.5 });
+          const dropLine = new THREE.Line(lineGeo, lineMat);
+          dropLine.computeLineDistances();
+          eqPointsGroup.add(dropLine);
+
+          const ringGeo = new THREE.RingGeometry(radius * 0.8, radius * 1.2, 24);
+          const ringMat = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          ring.position.set(pos.x, 0.2, pos.z);
+          eqPointsGroup.add(ring);
+        }
+      });
+
+      document.getElementById('stat-displayed').innerText = count.toLocaleString() + " 筆";
+      document.getElementById('stat-max-mag').innerText = count > 0 ? "M " + maxM.toFixed(1) : "-";
+      document.getElementById('stat-avg-depth').innerText = count > 0 ? (depthSum / count).toFixed(1) + " km" : "-";
+
+      const countyRow = document.getElementById('row-county-target');
+      if (selectedCounty !== 'all') {
+        countyRow.style.display = 'flex';
+        document.getElementById('stat-county-name').innerText = selectedCounty;
+      } else {
+        countyRow.style.display = 'none';
+      }
+    }
+
+    // 7. Camera Animation
+    let animId = null;
+    function animateCameraTo(tx, ty, tz, dist, tiltAngle) {
+      if (animId) cancelAnimationFrame(animId);
+
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(tx, ty, tz);
+
+      const tilt = (tiltAngle !== undefined) ? (tiltAngle * Math.PI / 180) : 0.8;
+      const startCam = camera.position.clone();
+      const endCam = new THREE.Vector3(
+        tx + dist * Math.sin(tilt) * 0.6,
+        ty + dist * Math.cos(tilt),
+        tz + dist * Math.sin(tilt) * 0.8
+      );
+
+      let t = 0;
+      function step() {
+        t += 0.035;
+        if (t > 1) t = 1;
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        camera.position.lerpVectors(startCam, endCam, ease);
+        controls.update();
+
+        if (t < 1) animId = requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    // 8. County Change & Presets
+    function onCountyChange() {
+      const county = document.getElementById('sel-county').value;
+      for (const name in countyLinesMap) {
+        const isSelected = (county === name);
+        countyLinesMap[name].forEach(l => {
+          if (county === 'all') {
+            l.material.color.setHex(0x38bdf8);
+            l.material.opacity = 0.8;
+          } else if (isSelected) {
+            l.material.color.setHex(0xf59e0b);
+            l.material.opacity = 1.0;
+          } else {
+            l.material.color.setHex(0x1e293b);
+            l.material.opacity = 0.25;
+          }
+        });
+      }
+
+      if (county !== 'all' && COUNTY_DATA[county]) {
+        const c = COUNTY_DATA[county];
+        const targetPos = geoTo3D(c.center_lon, c.center_lat, 25);
+        animateCameraTo(targetPos.x, targetPos.y, targetPos.z, 110);
+      } else if (county === 'all') {
+        animateCameraTo(0, -30, 0, 220);
+      }
+      buildEarthquakes();
+    }
+
+    function setPreset(preset, btn) {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      document.getElementById('sel-county').value = 'all';
+      for (const name in countyLinesMap) {
+        countyLinesMap[name].forEach(l => {
+          l.material.color.setHex(0x38bdf8);
+          l.material.opacity = 0.8;
+        });
+      }
+
+      if (preset === 'overview') {
+        animateCameraTo(0, -30, 0, 220);
+      } else if (preset === 'hualien') {
+        const hPos = geoTo3D(121.6, 24.0, 50);
+        controls.target.set(hPos.x, hPos.y, hPos.z);
+        camera.position.set(hPos.x + 130, hPos.y + 40, hPos.z + 100);
+        controls.update();
+      } else if (preset === 'chichi') {
+        const cPos = geoTo3D(120.8, 23.8, 15);
+        animateCameraTo(cPos.x, cPos.y, cPos.z, 90);
+      } else if (preset === 'chihshang') {
+        const tPos = geoTo3D(121.2, 23.1, 25);
+        animateCameraTo(tPos.x, tPos.y, tPos.z, 95);
+      }
+      buildEarthquakes();
+    }
+
+    // 9. AI VOICE ASSISTANT ENGINE (音畫同步空間運鏡小幫手)
+    let isSpeaking = false;
+    let storyBeatsQueue = [];
+    let currentBeatIndex = 0;
+
+    // Web Speech Recognition
+    let recognition = null;
+    let isListening = false;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'zh-TW';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        document.getElementById('btn-voice-mic').classList.add('listening');
+        document.getElementById('input-query').placeholder = '🎙️ 聆聽您的語音中，請說話...';
+      };
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        document.getElementById('input-query').value = text;
+        submitQuery(text);
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById('btn-voice-mic').classList.remove('listening');
+        document.getElementById('input-query').placeholder = '用語音或文字提問：例如「921地震是什麼情況？」...';
+      };
+
+      recognition.onerror = (e) => {
+        console.warn('Speech recognition error:', e.error);
+        isListening = false;
+        document.getElementById('btn-voice-mic').classList.remove('listening');
+      };
+    }
+
+    function toggleVoiceInput() {
+      if (!recognition) {
+        alert('您的瀏覽器不支援 Web Speech 語音輸入，請直接在文字框輸入提問！');
+        return;
+      }
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    function quickAsk(text) {
+      document.getElementById('input-query').value = text;
+      submitQuery(text);
+    }
+
+    // Handle Question Submission
+    async function submitQuery(queryText) {
+      const query = queryText || document.getElementById('input-query').value.trim();
+      if (!query) return;
+
+      stopStoryNarration();
+
+      // Check if GAS URL is configured in localStorage or use default
+      const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzeoAA2_MgFsf7-kIoKyCmyUDuyrSDBXSCFb9yiEKnu1csnry3bDOeUxf34L0Y8dOA1/exec';
+      const gasUrl = localStorage.getItem('TW_EQ_GAS_URL') || DEFAULT_GAS_URL;
+      let resultData = null;
+
+      if (gasUrl) {
+        try {
+          document.getElementById('story-banner').style.display = 'block';
+          document.getElementById('story-location-badge').innerText = '⏳ 正在查詢';
+          document.getElementById('story-subtitle-text').innerText = '正在向 Google Apps Script 地震小幫手取得解答與 3D 分鏡...';
+
+          const res = await fetch(gasUrl + '?q=' + encodeURIComponent(query));
+          resultData = await res.json();
+        } catch (e) {
+          console.warn('GAS query failed, falling back to local engine:', e);
+          resultData = getLocalAnswer(query);
+        }
+      } else {
+        resultData = getLocalAnswer(query);
+      }
+
+      playStoryTimeline(resultData);
+    }
+
+    // Local Knowledge Engine (即時開箱即用，免後端)
+    function getLocalAnswer(q) {
+      const query = q.toLowerCase();
+      if (query.includes('921') || query.includes('集集') || query.includes('車籠埔') || query.includes('1999')) {
+        return {
+          topic: '1999年921集集大地震',
+          beats: [
+            {
+              voice_text: '1999 年 9 月 21 日凌晨 1 點 47 分，南投集集發生了芮氏規模 7.3 的強烈大地震。',
+              location: '南投縣集集鎮',
+              camera: { lon: 120.82, lat: 23.85, depth: 8.0, dist: 85, tilt: 45 },
+              subtitle: '震央：南投集集 · 規模 M 7.3 · 震源深度 8.0 km (極淺層破裂)',
+              filter: { year: '1999', county: '南投縣', minMag: 4.0 }
+            },
+            {
+              voice_text: '震源深度僅僅只有 8 公里，屬於極淺層破裂。車籠埔斷層地表破裂長達 100 公里，在中部地區造成劇烈抬升與破壞。',
+              location: '車籠埔斷層帶',
+              camera: { lon: 120.72, lat: 24.15, depth: 15.0, dist: 65, tilt: 40 },
+              subtitle: '車籠埔斷層劇烈錯動 · 地表垂直錯動高達 9.8 公尺',
+              filter: { year: '1999', county: '台中市', minMag: 4.0 }
+            },
+            {
+              voice_text: '隨後全臺灣整年度更觀測到多達 16 次規模 6 以上的強烈餘震，是臺灣近百年來最嚴重的震災。',
+              location: '全臺灣俯瞰',
+              camera: { lon: 121.0, lat: 23.7, depth: 40.0, dist: 210, tilt: 25 },
+              subtitle: '1999 年餘震統計：5,959 筆地震 · 規模 ≥ 6.0 多達 16 次',
+              filter: { year: '1999', county: 'all', minMag: 4.0 }
+            }
+          ]
+        };
+      } else if (query.includes('花蓮') || query.includes('0403') || query.includes('2024') || query.includes('隱沒')) {
+        return {
+          topic: '2024年花蓮0403大地震與板塊隱沒帶',
+          beats: [
+            {
+              voice_text: '2024 年 4 月 3 日上午 7 點 58 分，花蓮壽豐鄉外海發生了規模 7.2 的強烈有感地震。',
+              location: '花蓮近海震央',
+              camera: { lon: 121.67, lat: 23.77, depth: 15.5, dist: 80, tilt: 45 },
+              subtitle: '震央：花蓮近海 · 規模 M 7.2 · 震源深度 15.5 km',
+              filter: { year: '2024', county: '花蓮縣', minMag: 4.0 }
+            },
+            {
+              voice_text: '這是菲律賓海板塊向北隱沒至歐亞大陸板塊前緣造成的強烈逆衝破裂，側面可以清楚看見傾斜插入地函的立體隱沒面。',
+              location: '花蓮琉球海溝隱沒帶',
+              camera: { lon: 121.6, lat: 24.0, depth: 50.0, dist: 110, tilt: 35 },
+              subtitle: '板塊隱沒傾角觀測 · 著名班尼奧夫帶 (Wadati-Benioff Zone)',
+              filter: { year: '2024', county: '花蓮縣', minMag: 3.5 }
+            },
+            {
+              voice_text: '主震後引發了密集餘震，2024 年全年在花蓮地區記錄到多達 4,834 筆地震，包含 13 次規模 6 以上強震。',
+              location: '花蓮東部海域',
+              camera: { lon: 121.5, lat: 23.9, depth: 30.0, dist: 140, tilt: 30 },
+              subtitle: '2024 年全量統計：累積 4,834 筆地震 · 規模 ≥ 6.0 達 13 次',
+              filter: { year: '2024', county: 'all', minMag: 4.0 }
+            }
+          ]
+        };
+      } else if (query.includes('池上') || query.includes('台東') || query.includes('臺東') || query.includes('縱谷')) {
+        return {
+          topic: '2022年臺東池上地震',
+          beats: [
+            {
+              voice_text: '2022 年 9 月 18 日下午 2 點 44 分，臺東池上發生規模 6.8 地震，震源深度僅 7 公里。',
+              location: '臺東縣池上鄉',
+              camera: { lon: 121.19, lat: 23.14, depth: 7.0, dist: 75, tilt: 45 },
+              subtitle: '震央：臺東池上 · 規模 M 6.8 · 深度 7.0 km',
+              filter: { year: '2022', county: '台東縣', minMag: 4.0 }
+            },
+            {
+              voice_text: '震央位於花東縱谷板塊縫合帶，中央山脈斷層在此產生劇烈走滑與逆衝，造成花東鐵路扭曲與多座橋樑受損。',
+              location: '花東縱谷斷層縫合帶',
+              camera: { lon: 121.25, lat: 23.25, depth: 20.0, dist: 90, tilt: 40 },
+              subtitle: '板塊縫合帶劇烈錯動 · 花蓮臺東交界破裂',
+              filter: { year: '2022', county: 'all', minMag: 4.0 }
+            }
+          ]
+        };
+      } else {
+        return {
+          topic: '臺灣百年全量地震觀測概況',
+          beats: [
+            {
+              voice_text: '臺灣位於菲律賓海板塊與歐亞大陸板塊的碰撞聚合交界帶，自 1990 年以來累計記錄超過 73,761 筆規模 3 以上地震。',
+              location: '全臺灣俯瞰',
+              camera: { lon: 121.0, lat: 23.7, depth: 40.0, dist: 210, tilt: 25 },
+              subtitle: '全臺 1990~2026 年累積觀測：73,761 筆地震紀錄',
+              filter: { year: 'all', county: 'all', minMag: 4.2 }
+            },
+            {
+              voice_text: '在東北部的花蓮與宜蘭海域，板塊向北深層隱沒；而西部與中部則以淺層破裂活動斷層為主。',
+              location: '花蓮-宜蘭深層隱沒帶',
+              camera: { lon: 121.6, lat: 24.2, depth: 60.0, dist: 120, tilt: 40 },
+              subtitle: '東部海域深層隱沒帶 vs 西部淺層活動斷層',
+              filter: { year: 'all', county: '花蓮縣', minMag: 4.0 }
+            }
+          ]
+        };
+      }
+    }
+
+    // Play Story Timeline (音畫同步播放器)
+    function playStoryTimeline(data) {
+      storyBeatsQueue = (data.beats || data.story_beats || []);
+      if (!storyBeatsQueue.length) return;
+
+      currentBeatIndex = 0;
+      document.getElementById('story-banner').style.display = 'block';
+      playNextBeat();
+    }
+
+    function playNextBeat() {
+      if (currentBeatIndex >= storyBeatsQueue.length) {
+        // Finished all beats
+        document.getElementById('story-audio-status').innerHTML = '<span>✔ 解說完畢 (點擊小幫手可隨時發問)</span>';
+        setTimeout(() => {
+          document.getElementById('story-banner').style.display = 'none';
+        }, 5000);
+        return;
+      }
+
+      const beat = storyBeatsQueue[currentBeatIndex];
+
+      // 1. Update UI Subtitle & Location Badge
+      document.getElementById('story-location-badge').innerText = '📍 ' + (beat.location || beat.location_name);
+      document.getElementById('story-subtitle-text').innerText = beat.subtitle || beat.voice_text;
+
+      // 2. Camera Fly-to Movement
+      if (beat.camera) {
+        const c = beat.camera;
+        const pos = geoTo3D(c.lon, c.lat, c.depth || 20);
+        animateCameraTo(pos.x, pos.y, pos.z, c.dist || c.zoom || 100, c.tilt || 45);
+      }
+
+      // 3. Update 3D Earthquake filter
+      if (beat.filter) {
+        buildEarthquakes(beat.filter);
+      }
+
+      // 4. Voice Narration via Web Speech Synthesis (or TTS)
+      speakVoiceText(beat.voice_text, () => {
+        currentBeatIndex++;
+        setTimeout(playNextBeat, 800);
+      });
+    }
+
+    // Web Speech Synthesis Engine
+    function speakVoiceText(text, onEnded) {
+      if (!('speechSynthesis' in window)) {
+        setTimeout(onEnded, 4000);
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-TW';
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+
+      utterance.onend = () => {
+        if (onEnded) onEnded();
+      };
+      utterance.onerror = () => {
+        if (onEnded) onEnded();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopStoryNarration() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      storyBeatsQueue = [];
+      document.getElementById('story-banner').style.display = 'none';
+    }
+
+    // Click banner to stop
+    document.getElementById('story-banner').addEventListener('click', stopStoryNarration);
+
+    // 10. Settings Modal Handlers
+    function openSettingsModal() {
+      document.getElementById('cfg-gas-url').value = localStorage.getItem('TW_EQ_GAS_URL') || '';
+      document.getElementById('cfg-opr-key').value = localStorage.getItem('TW_EQ_OPR_KEY') || '';
+      document.getElementById('settings-modal').style.display = 'flex';
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function saveSettings() {
+      const gasUrl = document.getElementById('cfg-gas-url').value.trim();
+      const oprKey = document.getElementById('cfg-opr-key').value.trim();
+      if (gasUrl) localStorage.setItem('TW_EQ_GAS_URL', gasUrl);
+      else localStorage.removeItem('TW_EQ_GAS_URL');
+
+      if (oprKey) localStorage.setItem('TW_EQ_OPR_KEY', oprKey);
+      else localStorage.removeItem('TW_EQ_OPR_KEY');
+
+      closeSettingsModal();
+      alert('設定已儲存！');
+    }
+
+    // 11. UI Controls Callbacks
+    function updateMag(val) {
+      document.getElementById('val-mag').innerText = 'M ≥ ' + parseFloat(val).toFixed(1);
+      buildEarthquakes();
+    }
+
+    function updateDepth(val) {
+      document.getElementById('val-depth').innerText = val + ' km';
+      buildEarthquakes();
+    }
+
+    function applyFilters() {
+      buildEarthquakes();
+    }
+
+    // 12. Raycaster for Tooltips
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const tooltip = document.getElementById('tooltip');
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(eqMeshes);
+
+      if (intersects.length > 0) {
+        const item = intersects[0].object.userData;
+        tooltip.style.display = 'block';
+        tooltip.style.left = e.clientX + 'px';
+        tooltip.style.top = e.clientY + 'px';
+        tooltip.innerHTML = `
+          <div class="tooltip-header">
+            <span>地震規模 M ${item.m.toFixed(1)}</span>
+            <span style="color: ${item.z < 35 ? '#f87171' : '#38bdf8'}">${item.z < 35 ? '淺層' : '深層隱沒'}</span>
+          </div>
+          <div class="tooltip-row">
+            <span>發震時間:</span>
+            <span class="val">${item.t}</span>
+          </div>
+          <div class="tooltip-row">
+            <span>震源深度:</span>
+            <span class="val">${item.z.toFixed(1)} km</span>
+          </div>
+          <div class="tooltip-row">
+            <span>震央座標:</span>
+            <span class="val">${item.x}°E, ${item.y}°N</span>
+          </div>
+        `;
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initial setup
+    setPreset('overview', document.getElementById('btn-p-overview'));
+    buildEarthquakes();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

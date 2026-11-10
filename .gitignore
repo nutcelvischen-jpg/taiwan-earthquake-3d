@@ -1,0 +1,21 @@
+# API Keys & Secrets
+*key.local.js
+OPR-KEY.txt
+*.key
+*.pem
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node & Python
+node_modules/
+npm-debug.log*
+__pycache__/
+*.pyc
+
+# Intermediate audio files
+*.raw
+*.wav

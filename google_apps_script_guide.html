@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google Apps Script (GAS) 地震小幫手部署指南</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b1120;
+      color: #f8fafc;
+      font-family: 'Noto Sans TC', sans-serif;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block;
+      background: #0284c7;
+      color: white;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 28px; font-weight: 800; color: #38bdf8; margin-bottom: 8px; }
+    p.lead { color: #94a3b8; font-size: 15px; }
+
+    .step-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+    }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .code-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      max-height: 380px;
+      overflow-y: auto;
+      white-space: pre;
+      margin: 14px 0;
+    }
+    .btn-copy {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      background: #0369a1;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.5);
+    }
+    .btn-copy.copied {
+      background: #10b981;
+    }
+    .key-highlight-box {
+      background: #1e293b;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .btn-back {
+      display: inline-block;
+      margin-top: 16px;
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .btn-back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-box">
+      <span class="badge">🚀 後端部署指南</span>
+      <h1>Google Apps Script (GAS) 地震小幫手快速部署</h1>
+      <p class="lead">只需 2 分鐘，即可免費將地震小幫手後端掛上 Google Apps Script，獲得專屬 API 網址並串接至 3D 地圖！</p>
+      <a class="btn-back" href="taiwan_earthquake_3d.html">← 返回 3D 臺灣地震儀表板</a>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <span>前往 Google Apps Script 建立新專案</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 14px;">
+        1. 打開瀏覽器前往 <a href="https://script.google.com/home" target="_blank" style="color: #38bdf8; font-weight: 700;">Google Apps Script 主控台</a>。<br>
+        2. 點擊左上角的 <strong>「＋ 新專案」</strong>。<br>
+        3. 將專案名稱重新命名為 <code>臺灣地震3D智慧小幫手</code>。
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <span>貼上程式碼 (Code.js)</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 14px;">
+        清空 <code>Code.gs</code> 檔案原本的內容，點擊下方按鈕複製完整程式碼並貼入：
+      </p>
+      <button class="btn-copy" id="btn-copy-gas" onclick="copyGasCode()">
+        <span>📋</span> 一鍵複製 GAS 完整程式碼
+      </button>
+      <div class="code-box" id="gas-code-preview">正在載入程式碼...</div>
+    </div>
+
+    <!-- Step 3: Script Properties -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <span>設定指令碼屬性 (填入 OpenRouter API Key)</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 14px; line-height: 1.8;">
+        為了保障 API Key 安全且不寫死在程式碼中，請透過 Apps Script 內建的屬性管理：<br>
+        1. 點擊左側齒輪圖示 ⚙️ <strong>「專案設定 (Project Settings)」</strong>。<br>
+        2. 往下拉找到 <strong>「指令碼屬性 (Script Properties)」</strong> ➔ 點擊 <strong>「新增指令碼屬性」</strong>。<br>
+      </p>
+      <div class="key-highlight-box">
+        <div><strong>屬性 (Property)：</strong> <code>OPENROUTER_API_KEY</code></div>
+        <div style="margin-top: 4px;"><strong>值 (Value)：</strong> <code>sk-or-v1-xxxxxxxx... (貼上您的 OpenRouter API 金鑰)</code></div>
+      </div>
+      <p style="color: #94a3b8; font-size: 13px; margin-top: 8px;">
+        點擊「儲存指令碼屬性」。這樣後端就能自動調用 Gemini 2.5 Flash 產生動態時空分鏡！
+      </p>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <span>發布為 Web 應用程式 (Web App)</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 14px; line-height: 1.8;">
+        1. 點擊右上角藍色按鈕 <strong>「部署」</strong> &rarr; 選擇 <strong>「新增部署作業」</strong>。<br>
+        2. 點擊左側齒輪 ⚙️ &rarr; 選擇 <strong>「網路應用程式 (Web App)」</strong>。<br>
+        3. <strong>執行身分</strong>：選擇 <code>我 (您的 Gmail)</code>。<br>
+        4. <strong style="color: #f59e0b;">誰可以存取 (關鍵！)</strong>：務必切換為 <code>任何人 (Anyone)</code>。<br>
+        5. 點擊「部署」，並複製產生的 <strong>「網頁應用程式網址 (Web App URL)」</strong>。
+      </p>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <span>回貼到 3D 地球儀設定中</span>
+      </div>
+      <p style="color: #cbd5e1; font-size: 14px;">
+        回到 <a href="taiwan_earthquake_3d.html" style="color: #38bdf8; font-weight: 700;">taiwan_earthquake_3d.html</a>，點擊右上角 <strong>「⚙️ 小幫手設定」</strong>，將您的 GAS 網址貼入即可！
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let gasCode = "";
+    fetch('google_apps_script/Code.js')
+      .then(res => res.text())
+      .then(text => {
+        gasCode = text;
+        document.getElementById('gas-code-preview').innerText = text;
+      })
+      .catch(err => {
+        document.getElementById('gas-code-preview').innerText = "// 請直接至 google_apps_script/Code.js 複製程式碼";
+      });
+
+    function copyGasCode() {
+      if (!gasCode) {
+        gasCode = document.getElementById('gas-code-preview').innerText;
+      }
+      navigator.clipboard.writeText(gasCode).then(() => {
+        const btn = document.getElementById('btn-copy-gas');
+        btn.classList.add('copied');
+        btn.innerHTML = '<span>✔</span> 已複製到剪貼簿！';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<span>📋</span> 一鍵複製 GAS 完整程式碼';
+        }, 3000);
+      });
+    }
+  </script>
+</body>
+</html>

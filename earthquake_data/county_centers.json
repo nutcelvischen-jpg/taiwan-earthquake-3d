@@ -1,0 +1,162 @@
+{
+  "台東縣": {
+    "center_lon": 121.295,
+    "center_lat": 22.763,
+    "min_lon": 120.589,
+    "max_lon": 121.865,
+    "min_lat": 21.844,
+    "max_lat": 23.544
+  },
+  "宜蘭縣": {
+    "center_lon": 121.778,
+    "center_lat": 24.713,
+    "min_lon": 121.167,
+    "max_lon": 122.216,
+    "min_lat": 24.209,
+    "max_lat": 25.088
+  },
+  "台北市": {
+    "center_lon": 121.579,
+    "center_lat": 25.076,
+    "min_lon": 121.307,
+    "max_lon": 121.916,
+    "min_lat": 24.861,
+    "max_lat": 25.31
+  },
+  "雲林縣": {
+    "center_lon": 120.289,
+    "center_lat": 23.631,
+    "min_lon": 119.848,
+    "max_lon": 120.986,
+    "min_lat": 23.336,
+    "max_lat": 23.947
+  },
+  "桃園縣": {
+    "center_lon": 121.262,
+    "center_lat": 24.915,
+    "min_lon": 120.836,
+    "max_lon": 121.729,
+    "min_lat": 24.486,
+    "max_lat": 25.222
+  },
+  "屏東縣": {
+    "center_lon": 120.745,
+    "center_lat": 22.276,
+    "min_lon": 120.203,
+    "max_lon": 121.154,
+    "min_lat": 21.797,
+    "max_lat": 22.985
+  },
+  "台中市": {
+    "center_lon": 120.899,
+    "center_lat": 24.261,
+    "min_lon": 120.311,
+    "max_lon": 121.7,
+    "min_lat": 23.898,
+    "max_lat": 24.542
+  },
+  "台南市": {
+    "center_lon": 120.369,
+    "center_lat": 23.167,
+    "min_lon": 119.882,
+    "max_lon": 120.906,
+    "min_lat": 22.787,
+    "max_lat": 23.514
+  },
+  "基隆市": {
+    "center_lon": 121.742,
+    "center_lat": 25.135,
+    "min_lon": 121.477,
+    "max_lon": 122.058,
+    "min_lat": 24.953,
+    "max_lat": 25.296
+  },
+  "南投縣": {
+    "center_lon": 120.906,
+    "center_lat": 23.868,
+    "min_lon": 120.466,
+    "max_lon": 121.599,
+    "min_lat": 23.335,
+    "max_lat": 24.346
+  },
+  "澎湖縣": {
+    "center_lon": 119.597,
+    "center_lat": 23.586,
+    "min_lon": 119.35,
+    "max_lon": 119.978,
+    "min_lat": 23.134,
+    "max_lat": 23.898
+  },
+  "苗栗縣": {
+    "center_lon": 120.88,
+    "center_lat": 24.522,
+    "min_lon": 120.471,
+    "max_lon": 121.513,
+    "min_lat": 24.189,
+    "max_lat": 24.841
+  },
+  "嘉義市": {
+    "center_lon": 120.452,
+    "center_lat": 23.483,
+    "min_lon": 120.239,
+    "max_lon": 120.759,
+    "min_lat": 23.34,
+    "max_lat": 23.618
+  },
+  "新竹縣": {
+    "center_lon": 121.125,
+    "center_lat": 24.712,
+    "min_lon": 120.782,
+    "max_lon": 121.662,
+    "min_lat": 24.328,
+    "max_lat": 25.046
+  },
+  "新北市": {
+    "center_lon": 121.657,
+    "center_lat": 25.061,
+    "min_lon": 121.133,
+    "max_lon": 122.257,
+    "min_lat": 24.573,
+    "max_lat": 25.4
+  },
+  "花蓮縣": {
+    "center_lon": 121.4,
+    "center_lat": 23.706,
+    "min_lon": 120.837,
+    "max_lon": 122.024,
+    "min_lat": 22.998,
+    "max_lat": 24.47
+  },
+  "高雄市": {
+    "center_lon": 120.566,
+    "center_lat": 22.955,
+    "min_lon": 120.025,
+    "max_lon": 121.299,
+    "min_lat": 22.376,
+    "max_lat": 23.572
+  },
+  "彰化縣": {
+    "center_lon": 120.516,
+    "center_lat": 23.951,
+    "min_lon": 120.093,
+    "max_lon": 120.934,
+    "min_lat": 23.686,
+    "max_lat": 24.296
+  },
+  "嘉義縣": {
+    "center_lon": 120.488,
+    "center_lat": 23.432,
+    "min_lon": 119.967,
+    "max_lon": 121.208,
+    "min_lat": 23.115,
+    "max_lat": 23.736
+  },
+  "新竹市": {
+    "center_lon": 120.948,
+    "center_lat": 24.778,
+    "min_lon": 120.728,
+    "max_lon": 121.283,
+    "min_lat": 24.613,
+    "max_lat": 24.954
+  }
+}
